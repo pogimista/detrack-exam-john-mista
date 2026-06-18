@@ -22,6 +22,22 @@ flutter pub get
 flutter run
 ```
 
+### Build Flavors
+
+The Android app defines three flavors (`dev`, `staging`, `prod`), each paired with its
+own entry point. Running plain `flutter run` targets `prod`/`lib/main.dart`, but on
+Android you must pass `--flavor` explicitly or the Gradle build will fail to locate the
+output APK. Use the matching pair:
+
+```bash
+flutter run --flavor dev -t lib/main_dev.dart
+flutter run --flavor staging -t lib/main_staging.dart
+flutter run --flavor prod          # lib/main.dart is the default entry point
+```
+
+`--flavor` is an Android/iOS/macOS-only flag; omit it when running on Windows, Chrome,
+or Edge.
+
 The app requests foreground location permission on first use (Android:
 `ACCESS_FINE_LOCATION` / `ACCESS_COARSE_LOCATION`; iOS:
 `NSLocationWhenInUseUsageDescription`, already declared in `Info.plist`).
