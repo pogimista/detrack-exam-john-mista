@@ -11,8 +11,6 @@ import '../../domain/usecases/watch_location.dart';
 import 'tracking_event.dart';
 import 'tracking_state.dart';
 
-const int _maxRecentRecords = 10;
-
 class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
   final GetTarget getTarget;
   final WatchLocation watchLocation;
@@ -89,7 +87,7 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     var records = current.records;
     final recordsResult = await getTrackingRecords(const NoParams());
     if (recordsResult is Success<List<TrackingRecord>>) {
-      records = recordsResult.data.reversed.take(_maxRecentRecords).toList();
+      records = recordsResult.data.reversed.toList();
     }
 
     emit(
