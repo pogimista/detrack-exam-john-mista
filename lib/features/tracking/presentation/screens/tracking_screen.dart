@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
@@ -204,8 +205,14 @@ class _StatusCard extends StatelessWidget {
           distance: final distance,
         ) =>
           _ActiveStatus(target: target, location: loc, distance: distance),
-        TrackingFailure(message: final message) =>
-          _FailureStatus(message: message),
+        TrackingFailure(
+          message: final message,
+          permanentlyDenied: final permanentlyDenied,
+        ) =>
+          _FailureStatus(
+            message: message,
+            permanentlyDenied: permanentlyDenied,
+          ),
       },
     );
   }
@@ -328,8 +335,8 @@ class _ActiveStatus extends StatelessWidget {
                       location == null
                           ? 'Waiting for first reading…'
                           : 'lat: ${location.latitude.toStringAsFixed(5)}, '
-                              'lng: ${location.longitude.toStringAsFixed(5)}\n'
-                              'updated: ${location.timestamp.formattedDateTime}',
+                                'lng: ${location.longitude.toStringAsFixed(5)}\n'
+                                'updated: ${location.timestamp.formattedDateTime}',
                       style: context.labelSmall.copyWith(color: Colors.white70),
                     ),
                   ],
@@ -344,9 +351,10 @@ class _ActiveStatus extends StatelessWidget {
 }
 
 class _FailureStatus extends StatelessWidget {
-  const _FailureStatus({required this.message});
+  const _FailureStatus({required this.message, this.permanentlyDenied = false});
 
   final String message;
+  final bool permanentlyDenied;
 
   @override
   Widget build(BuildContext context) {
@@ -368,6 +376,14 @@ class _FailureStatus extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(message, style: context.bodySmall),
+              if (permanentlyDenied) ...[
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => Geolocator.openAppSettings(),
+                  style: TextButton.styleFrom(padding: EdgeInsets.zero),
+                  child: const Text('Open Settings'),
+                ),
+              ],
             ],
           ),
         ),
@@ -390,7 +406,9 @@ class _ToggleButton extends StatelessWidget {
       child: FilledButton.icon(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-          backgroundColor: isTracking ? const Color(0xFFE0433D) : AppColors.primary,
+          backgroundColor: isTracking
+              ? const Color(0xFFE0433D)
+              : AppColors.primary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
@@ -414,7 +432,11 @@ class _EmptyReadingsView extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.timeline_outlined, size: 48, color: AppColors.secondary),
+            const Icon(
+              Icons.timeline_outlined,
+              size: 48,
+              color: AppColors.secondary,
+            ),
             const SizedBox(height: 12),
             Text(
               'No readings captured yet',
@@ -501,16 +523,19 @@ class _ReadingsList extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primary.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     record.distance.formatted,
-                    style:
-                        context.labelMedium.copyWith(color: AppColors.primary),
+                    style: context.labelMedium.copyWith(
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ],
@@ -550,7 +575,10 @@ class _NewReadingEntranceState extends State<_NewReadingEntrance>
 
   @override
   Widget build(BuildContext context) {
-    final curved = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    final curved = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
     return FadeTransition(
       opacity: curved,
       child: SlideTransition(

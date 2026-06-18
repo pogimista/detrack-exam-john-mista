@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/domain/usecases/base_usecase.dart';
+import '../../../../core/error/failures.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/tracking_record.dart';
 import '../../domain/usecases/calculate_distance.dart';
@@ -42,12 +43,19 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
 
   /// Rebuilds [state] as its same variant with [records] swapped in, so the
   /// stored list stays visible regardless of whether tracking is active.
-  TrackingState _withRecords(TrackingState state, List<TrackingRecord> records) {
+  TrackingState _withRecords(
+    TrackingState state,
+    List<TrackingRecord> records,
+  ) {
     return switch (state) {
       TrackingIdle() => TrackingIdle(records: records),
       TrackingStarting() => TrackingStarting(records: records),
       TrackingInProgress s => s.copyWith(records: records),
-      TrackingFailure s => TrackingFailure(s.message, records: records),
+      TrackingFailure s => TrackingFailure(
+        s.message,
+        permanentlyDenied: s.permanentlyDenied,
+        records: records,
+      ),
     };
   }
 
@@ -79,12 +87,19 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
       case Success(data: final target):
         emit(TrackingInProgress(target: target, records: records));
         await _locationSubscription?.cancel();
-        _locationSubscription = watchLocation(
-          const WatchLocationParams(interval: Duration(seconds: 5)),
-        ).listen(
-          (point) => add(LocationUpdated(point)),
-          onError: (error) => add(TrackingFailed(error.toString())),
-        );
+        _locationSubscription =
+            watchLocation(
+              const WatchLocationParams(interval: Duration(seconds: 5)),
+            ).listen(
+              (point) => add(LocationUpdated(point)),
+              onError: (error) => add(
+                TrackingFailed(
+                  error.toString(),
+                  permanentlyDenied:
+                      error is PermissionPermanentlyDeniedException,
+                ),
+              ),
+            );
       case Err(failure: final failure):
         emit(TrackingFailure(failure.message, records: records));
     }
@@ -134,11 +149,14 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     );
   }
 
-  void _onTrackingFailed(
-    TrackingFailed event,
-    Emitter<TrackingState> emit,
-  ) {
-    emit(TrackingFailure(event.message, records: state.records));
+  void _onTrackingFailed(TrackingFailed event, Emitter<TrackingState> emit) {
+    emit(
+      TrackingFailure(
+        event.message,
+        permanentlyDenied: event.permanentlyDenied,
+        records: state.records,
+      ),
+    );
   }
 
   Future<void> _onClearRecordsRequested(

@@ -6,6 +6,15 @@ class ServerException implements Exception {
   String toString() => message;
 }
 
+// Thrown when location permission is denied permanently (the OS will no
+// longer show the system prompt), so recovery requires opening app settings.
+class PermissionPermanentlyDeniedException implements Exception {
+  final String message;
+  const PermissionPermanentlyDeniedException(this.message);
+  @override
+  String toString() => message;
+}
+
 class CacheException implements Exception {
   final String message;
   const CacheException(this.message);

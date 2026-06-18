@@ -52,9 +52,14 @@ class TrackingInProgress extends TrackingState {
 
 class TrackingFailure extends TrackingState {
   final String message;
+  final bool permanentlyDenied;
 
-  const TrackingFailure(this.message, {super.records});
+  const TrackingFailure(
+    this.message, {
+    this.permanentlyDenied = false,
+    super.records,
+  });
 
   @override
-  List<Object?> get props => [message, records];
+  List<Object?> get props => [message, permanentlyDenied, records];
 }

@@ -27,11 +27,12 @@ class LocationUpdated extends TrackingEvent {
 
 class TrackingFailed extends TrackingEvent {
   final String message;
+  final bool permanentlyDenied;
 
-  const TrackingFailed(this.message);
+  const TrackingFailed(this.message, {this.permanentlyDenied = false});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, permanentlyDenied];
 }
 
 class ClearRecordsRequested extends TrackingEvent {

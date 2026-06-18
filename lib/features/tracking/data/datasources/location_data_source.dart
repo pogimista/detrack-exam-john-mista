@@ -18,8 +18,12 @@ class LocationDataSourceImpl implements LocationDataSource {
     if (permission == LocationPermission.denied) {
       permission = await Geolocator.requestPermission();
     }
-    if (permission == LocationPermission.denied ||
-        permission == LocationPermission.deniedForever) {
+    if (permission == LocationPermission.deniedForever) {
+      throw const PermissionPermanentlyDeniedException(
+        'Location permission permanently denied.',
+      );
+    }
+    if (permission == LocationPermission.denied) {
       throw const ServerException('Location permission denied.');
     }
   }
@@ -32,7 +36,9 @@ class LocationDataSourceImpl implements LocationDataSource {
     Future<void> tick() async {
       try {
         final position = await Geolocator.getCurrentPosition(
-          timeLimit: const Duration(seconds: 10),
+          locationSettings: LocationSettings(
+            timeLimit: const Duration(seconds: 10),
+          ),
         );
         if (!cancelled) {
           controller.add(
