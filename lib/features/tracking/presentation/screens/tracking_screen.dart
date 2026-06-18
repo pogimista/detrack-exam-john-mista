@@ -24,8 +24,17 @@ class TrackingScreen extends StatelessWidget {
   }
 }
 
-class _TrackingView extends StatelessWidget {
+class _TrackingView extends StatefulWidget {
   const _TrackingView();
+
+  @override
+  State<_TrackingView> createState() => _TrackingViewState();
+}
+
+class _TrackingViewState extends State<_TrackingView> {
+  static const List<int> _filterOptions = [5, 10, 15, 20];
+
+  int _limit = _filterOptions.last;
 
   bool _isTracking(TrackingState state) => state is TrackingInProgress;
 
@@ -39,6 +48,7 @@ class _TrackingView extends StatelessWidget {
           final records = state is TrackingInProgress
               ? state.records
               : const <TrackingRecord>[];
+          final visibleRecords = records.take(_limit).toList();
           return SafeArea(
             child: Column(
               children: [
@@ -67,20 +77,64 @@ class _TrackingView extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('Captured Readings', style: context.titleMedium),
-                      Text('${records.length}', style: context.labelSmall),
+                      Text(
+                        'Showing ${visibleRecords.length} of ${records.length}',
+                        style: context.labelSmall,
+                      ),
                     ],
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _ReadingsFilter(
+                    options: _filterOptions,
+                    selected: _limit,
+                    onSelected: (value) => setState(() => _limit = value),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Expanded(
-                  child: records.isEmpty
+                  child: visibleRecords.isEmpty
                       ? _EmptyReadingsView()
-                      : _ReadingsList(records: records),
+                      : _ReadingsList(records: visibleRecords),
                 ),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+}
+
+class _ReadingsFilter extends StatelessWidget {
+  const _ReadingsFilter({
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+  });
+
+  final List<int> options;
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerLeft,
+      child: SegmentedButton<int>(
+        segments: [
+          for (final option in options)
+            ButtonSegment(value: option, label: Text('$option')),
+        ],
+        selected: {selected},
+        showSelectedIcon: false,
+        onSelectionChanged: (selection) => onSelected(selection.first),
+        style: SegmentedButton.styleFrom(
+          selectedBackgroundColor: AppColors.primary,
+          selectedForegroundColor: Colors.white,
+        ),
       ),
     );
   }
