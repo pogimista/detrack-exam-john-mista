@@ -2,16 +2,23 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/domain/usecases/base_usecase.dart';
 import '../../../../core/utils/result.dart';
+import '../../domain/entities/tracking_record.dart';
 import '../../domain/usecases/calculate_distance.dart';
 import '../../domain/usecases/get_target.dart';
+import '../../domain/usecases/get_tracking_records.dart';
+import '../../domain/usecases/save_tracking_record.dart';
 import '../../domain/usecases/watch_location.dart';
 import 'tracking_event.dart';
 import 'tracking_state.dart';
+
+const int _maxRecentRecords = 10;
 
 class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
   final GetTarget getTarget;
   final WatchLocation watchLocation;
   final CalculateDistance calculateDistance;
+  final SaveTrackingRecord saveTrackingRecord;
+  final GetTrackingRecords getTrackingRecords;
 
   StreamSubscription? _locationSubscription;
 
@@ -19,6 +26,8 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     required this.getTarget,
     required this.watchLocation,
     required this.calculateDistance,
+    required this.saveTrackingRecord,
+    required this.getTrackingRecords,
   }) : super(const TrackingIdle()) {
     on<StartTrackingRequested>(_onStartTrackingRequested);
     on<StopTrackingRequested>(_onStopTrackingRequested);
@@ -57,17 +66,39 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     emit(const TrackingIdle());
   }
 
-  void _onLocationUpdated(
+  Future<void> _onLocationUpdated(
     LocationUpdated event,
     Emitter<TrackingState> emit,
-  ) {
+  ) async {
     final current = state;
-    if (current is TrackingInProgress) {
-      final distance = calculateDistance(
-        CalculateDistanceParams(from: event.point, to: current.target),
-      );
-      emit(current.copyWith(lastLocation: event.point, distance: distance));
+    if (current is! TrackingInProgress) return;
+
+    final distance = calculateDistance(
+      CalculateDistanceParams(from: event.point, to: current.target),
+    );
+
+    await saveTrackingRecord(
+      TrackingRecord(
+        timestamp: event.point.timestamp,
+        latitude: event.point.latitude,
+        longitude: event.point.longitude,
+        distance: distance,
+      ),
+    );
+
+    var records = current.records;
+    final recordsResult = await getTrackingRecords(const NoParams());
+    if (recordsResult is Success<List<TrackingRecord>>) {
+      records = recordsResult.data.reversed.take(_maxRecentRecords).toList();
     }
+
+    emit(
+      current.copyWith(
+        lastLocation: event.point,
+        distance: distance,
+        records: records,
+      ),
+    );
   }
 
   void _onTrackingFailed(

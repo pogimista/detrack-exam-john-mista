@@ -4,6 +4,7 @@ import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
 import '../../../../core/utils/string_extensions.dart';
+import '../../domain/entities/tracking_record.dart';
 import '../bloc/tracking_bloc.dart';
 import '../bloc/tracking_event.dart';
 import '../bloc/tracking_state.dart';
@@ -31,36 +32,80 @@ class _TrackingView extends StatelessWidget {
       appBar: AppBar(title: const Text('Location Tracking')),
       body: BlocBuilder<TrackingBloc, TrackingState>(
         builder: (context, state) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _buildStatus(context, state),
-                  const SizedBox(height: 32),
-                  FilledButton(
-                    onPressed: () {
-                      final bloc = context.read<TrackingBloc>();
-                      if (_isTracking(state)) {
-                        bloc.add(const StopTrackingRequested());
-                      } else {
-                        bloc.add(const StartTrackingRequested());
-                      }
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _isTracking(state)
-                          ? Colors.red
-                          : AppColors.primary,
-                      minimumSize: const Size(200, 48),
+          final records = state is TrackingInProgress
+              ? state.records
+              : const <TrackingRecord>[];
+          return Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    _buildStatus(context, state),
+                    const SizedBox(height: 32),
+                    FilledButton(
+                      onPressed: () {
+                        final bloc = context.read<TrackingBloc>();
+                        if (_isTracking(state)) {
+                          bloc.add(const StopTrackingRequested());
+                        } else {
+                          bloc.add(const StartTrackingRequested());
+                        }
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _isTracking(state)
+                            ? Colors.red
+                            : AppColors.primary,
+                        minimumSize: const Size(200, 48),
+                      ),
+                      child: Text(
+                        _isTracking(state)
+                            ? 'Stop Tracking'
+                            : 'Start Tracking',
+                      ),
                     ),
-                    child: Text(
-                      _isTracking(state) ? 'Stop Tracking' : 'Start Tracking',
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
+              if (records.isNotEmpty) ...[
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text('Stored records', style: context.titleMedium),
+                  ),
+                ),
+                Expanded(
+                  child: ListView.separated(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    itemCount: records.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (context, index) {
+                      final record = records[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(
+                          'lat: ${record.latitude}, lng: ${record.longitude}',
+                          style: context.bodyMedium,
+                        ),
+                        subtitle: Text(
+                          'distance: ${record.distance.formatted}',
+                          style: context.bodySmall,
+                        ),
+                        trailing: Text(
+                          record.timestamp.formattedDateTime,
+                          style: context.labelSmall,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
           );
         },
       ),

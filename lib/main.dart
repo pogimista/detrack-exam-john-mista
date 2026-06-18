@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'core/config/app_config.dart';
 import 'core/di/service_locator.dart' as di;
 import 'core/router/app_router.dart';
@@ -14,6 +15,7 @@ void main() async {
 
 Future<void> bootstrap() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Hive.initFlutter();
   await di.init();
   runApp(const MyApp());
 }
