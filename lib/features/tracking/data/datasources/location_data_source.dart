@@ -31,7 +31,9 @@ class LocationDataSourceImpl implements LocationDataSource {
 
     Future<void> tick() async {
       try {
-        final position = await Geolocator.getCurrentPosition();
+        final position = await Geolocator.getCurrentPosition(
+          timeLimit: const Duration(seconds: 10),
+        );
         if (!cancelled) {
           controller.add(
             LocationPoint(
