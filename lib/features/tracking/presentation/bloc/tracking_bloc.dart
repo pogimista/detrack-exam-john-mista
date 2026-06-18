@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/domain/usecases/base_usecase.dart';
 import '../../../../core/utils/result.dart';
+import '../../domain/usecases/calculate_distance.dart';
 import '../../domain/usecases/get_target.dart';
 import '../../domain/usecases/watch_location.dart';
 import 'tracking_event.dart';
@@ -10,12 +11,14 @@ import 'tracking_state.dart';
 class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
   final GetTarget getTarget;
   final WatchLocation watchLocation;
+  final CalculateDistance calculateDistance;
 
   StreamSubscription? _locationSubscription;
 
   TrackingBloc({
     required this.getTarget,
     required this.watchLocation,
+    required this.calculateDistance,
   }) : super(const TrackingIdle()) {
     on<StartTrackingRequested>(_onStartTrackingRequested);
     on<StopTrackingRequested>(_onStopTrackingRequested);
@@ -60,7 +63,10 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
   ) {
     final current = state;
     if (current is TrackingInProgress) {
-      emit(current.copyWith(lastLocation: event.point));
+      final distance = calculateDistance(
+        CalculateDistanceParams(from: event.point, to: current.target),
+      );
+      emit(current.copyWith(lastLocation: event.point, distance: distance));
     }
   }
 

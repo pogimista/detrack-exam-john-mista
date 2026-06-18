@@ -7,6 +7,7 @@ import '../../features/tracking/data/datasources/location_data_source.dart';
 import '../../features/tracking/data/datasources/tracking_remote_data_source.dart';
 import '../../features/tracking/data/repositories/tracking_repository_impl.dart';
 import '../../features/tracking/domain/repositories/tracking_repository.dart';
+import '../../features/tracking/domain/usecases/calculate_distance.dart';
 import '../../features/tracking/domain/usecases/get_target.dart';
 import '../../features/tracking/domain/usecases/watch_location.dart';
 import '../../features/tracking/presentation/bloc/tracking_bloc.dart';
@@ -37,10 +38,12 @@ Future<void> init() async {
   sl.registerLazySingleton<WatchLocation>(
     () => WatchLocation(sl<TrackingRepository>()),
   );
+  sl.registerLazySingleton<CalculateDistance>(() => CalculateDistance());
   sl.registerFactory<TrackingBloc>(
     () => TrackingBloc(
       getTarget: sl<GetTarget>(),
       watchLocation: sl<WatchLocation>(),
+      calculateDistance: sl<CalculateDistance>(),
     ),
   );
 }

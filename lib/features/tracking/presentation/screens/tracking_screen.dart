@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_text_styles.dart';
+import '../../../../core/utils/string_extensions.dart';
 import '../bloc/tracking_bloc.dart';
 import '../bloc/tracking_event.dart';
 import '../bloc/tracking_state.dart';
@@ -78,7 +79,11 @@ class _TrackingView extends StatelessWidget {
             Text('Fetching target...', style: context.bodyMedium),
           ],
         );
-      case TrackingInProgress(target: final target, lastLocation: final loc):
+      case TrackingInProgress(
+          target: final target,
+          lastLocation: final loc,
+          distance: final distance,
+        ):
         return Column(
           children: [
             Text('Target #${target.id}', style: context.titleMedium),
@@ -93,10 +98,17 @@ class _TrackingView extends StatelessWidget {
               loc == null
                   ? 'Waiting for location…'
                   : 'lat: ${loc.latitude}, lng: ${loc.longitude}\n'
-                      'updated: ${loc.timestamp.toIso8601String()}',
+                      'updated: ${loc.timestamp.formattedDateTime}',
               style: context.bodySmall,
               textAlign: TextAlign.center,
             ),
+            if (distance != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                'Distance to target: ${distance.formatted}',
+                style: context.titleMedium,
+              ),
+            ],
           ],
         );
       case TrackingFailure(message: final message):

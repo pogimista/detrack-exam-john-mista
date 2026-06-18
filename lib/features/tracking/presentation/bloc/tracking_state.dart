@@ -1,4 +1,5 @@
 import 'package:equatable/equatable.dart';
+import '../../domain/entities/distance.dart';
 import '../../domain/entities/location_point.dart';
 import '../../domain/entities/target.dart';
 
@@ -20,21 +21,24 @@ class TrackingStarting extends TrackingState {
 class TrackingInProgress extends TrackingState {
   final Target target;
   final LocationPoint? lastLocation;
+  final Distance? distance;
 
   const TrackingInProgress({
     required this.target,
     this.lastLocation,
+    this.distance,
   });
 
-  TrackingInProgress copyWith({LocationPoint? lastLocation}) {
+  TrackingInProgress copyWith({LocationPoint? lastLocation, Distance? distance}) {
     return TrackingInProgress(
       target: target,
       lastLocation: lastLocation ?? this.lastLocation,
+      distance: distance ?? this.distance,
     );
   }
 
   @override
-  List<Object?> get props => [target, lastLocation];
+  List<Object?> get props => [target, lastLocation, distance];
 }
 
 class TrackingFailure extends TrackingState {
