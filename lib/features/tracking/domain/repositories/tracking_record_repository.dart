@@ -5,4 +5,6 @@ abstract interface class TrackingRecordRepository {
   Future<Result<void>> saveRecord(TrackingRecord record);
 
   Future<Result<List<TrackingRecord>>> getRecords();
+
+  Future<Result<void>> clearRecords();
 }

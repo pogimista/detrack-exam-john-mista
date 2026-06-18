@@ -12,6 +12,7 @@ import '../../features/tracking/data/repositories/tracking_repository_impl.dart'
 import '../../features/tracking/domain/repositories/tracking_record_repository.dart';
 import '../../features/tracking/domain/repositories/tracking_repository.dart';
 import '../../features/tracking/domain/usecases/calculate_distance.dart';
+import '../../features/tracking/domain/usecases/clear_tracking_records.dart';
 import '../../features/tracking/domain/usecases/get_target.dart';
 import '../../features/tracking/domain/usecases/get_tracking_records.dart';
 import '../../features/tracking/domain/usecases/save_tracking_record.dart';
@@ -63,6 +64,9 @@ Future<void> init() async {
   sl.registerLazySingleton<GetTrackingRecords>(
     () => GetTrackingRecords(sl<TrackingRecordRepository>()),
   );
+  sl.registerLazySingleton<ClearTrackingRecords>(
+    () => ClearTrackingRecords(sl<TrackingRecordRepository>()),
+  );
 
   sl.registerFactory<TrackingBloc>(
     () => TrackingBloc(
@@ -71,6 +75,7 @@ Future<void> init() async {
       calculateDistance: sl<CalculateDistance>(),
       saveTrackingRecord: sl<SaveTrackingRecord>(),
       getTrackingRecords: sl<GetTrackingRecords>(),
+      clearTrackingRecords: sl<ClearTrackingRecords>(),
     ),
   );
 }

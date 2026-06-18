@@ -34,4 +34,14 @@ class TrackingRecordRepositoryImpl implements TrackingRecordRepository {
       return Err(CacheFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Result<void>> clearRecords() async {
+    try {
+      await localDataSource.clearAll();
+      return const Success(null);
+    } catch (e) {
+      return Err(CacheFailure(e.toString()));
+    }
+  }
 }

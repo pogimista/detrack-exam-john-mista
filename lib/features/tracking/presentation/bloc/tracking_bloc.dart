@@ -4,6 +4,7 @@ import '../../../../core/domain/usecases/base_usecase.dart';
 import '../../../../core/utils/result.dart';
 import '../../domain/entities/tracking_record.dart';
 import '../../domain/usecases/calculate_distance.dart';
+import '../../domain/usecases/clear_tracking_records.dart';
 import '../../domain/usecases/get_target.dart';
 import '../../domain/usecases/get_tracking_records.dart';
 import '../../domain/usecases/save_tracking_record.dart';
@@ -17,6 +18,7 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
   final CalculateDistance calculateDistance;
   final SaveTrackingRecord saveTrackingRecord;
   final GetTrackingRecords getTrackingRecords;
+  final ClearTrackingRecords clearTrackingRecords;
 
   StreamSubscription? _locationSubscription;
 
@@ -26,17 +28,25 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     required this.calculateDistance,
     required this.saveTrackingRecord,
     required this.getTrackingRecords,
+    required this.clearTrackingRecords,
   }) : super(const TrackingIdle()) {
     on<StartTrackingRequested>(_onStartTrackingRequested);
     on<StopTrackingRequested>(_onStopTrackingRequested);
     on<LocationUpdated>(_onLocationUpdated);
     on<TrackingFailed>(_onTrackingFailed);
+    on<ClearRecordsRequested>(_onClearRecordsRequested);
   }
 
   Future<void> _onStartTrackingRequested(
     StartTrackingRequested event,
     Emitter<TrackingState> emit,
   ) async {
+    // Guards against a second StartTrackingRequested (e.g. a fast double
+    // tap) racing this handler before the first await suspends — on<Event>
+    // processes events concurrently by default, so without this check both
+    // invocations would create their own location stream, doubling reads.
+    if (state is TrackingStarting || state is TrackingInProgress) return;
+
     emit(const TrackingStarting());
 
     final result = await getTarget(const NoParams());
@@ -104,6 +114,18 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     Emitter<TrackingState> emit,
   ) {
     emit(TrackingFailure(event.message));
+  }
+
+  Future<void> _onClearRecordsRequested(
+    ClearRecordsRequested event,
+    Emitter<TrackingState> emit,
+  ) async {
+    await clearTrackingRecords(const NoParams());
+
+    final current = state;
+    if (current is TrackingInProgress) {
+      emit(current.copyWith(records: const []));
+    }
   }
 
   @override

@@ -33,3 +33,7 @@ class TrackingFailed extends TrackingEvent {
   @override
   List<Object?> get props => [message];
 }
+
+class ClearRecordsRequested extends TrackingEvent {
+  const ClearRecordsRequested();
+}

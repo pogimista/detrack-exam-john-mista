@@ -4,6 +4,8 @@ abstract interface class TrackingRecordLocalDataSource {
   Future<void> addRecord(Map<String, dynamic> data);
 
   List<Map<dynamic, dynamic>> getAllRecords();
+
+  Future<void> clearAll();
 }
 
 /// Persists tracking records in a local Hive box, keyed automatically by
@@ -21,4 +23,9 @@ class TrackingRecordLocalDataSourceImpl
 
   @override
   List<Map<dynamic, dynamic>> getAllRecords() => box.values.toList();
+
+  @override
+  Future<void> clearAll() async {
+    await box.clear();
+  }
 }

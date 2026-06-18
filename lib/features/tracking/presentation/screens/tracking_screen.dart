@@ -38,11 +38,46 @@ class _TrackingViewState extends State<_TrackingView> {
 
   bool _isTracking(TrackingState state) => state is TrackingInProgress;
 
+  Future<void> _confirmClearCache(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Clear cached data?'),
+        content: const Text(
+          'This will permanently delete all stored readings from this device.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Clear', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      context.read<TrackingBloc>().add(const ClearRecordsRequested());
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F6FA),
-      appBar: AppBar(title: const Text('Location Tracking')),
+      appBar: AppBar(
+        title: const Text('Location Tracking'),
+        actions: [
+          IconButton(
+            tooltip: 'Clear cached data',
+            icon: const Icon(Icons.delete_outline),
+            onPressed: () => _confirmClearCache(context),
+          ),
+        ],
+      ),
       body: BlocBuilder<TrackingBloc, TrackingState>(
         builder: (context, state) {
           final records = state is TrackingInProgress

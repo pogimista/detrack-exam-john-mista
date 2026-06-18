@@ -27,17 +27,34 @@ class LocationDataSourceImpl implements LocationDataSource {
   @override
   Stream<LocationPoint> watchLocation({required Duration interval}) {
     late StreamController<LocationPoint> controller;
-    Timer? timer;
+    var cancelled = false;
 
     Future<void> tick() async {
-      final position = await Geolocator.getCurrentPosition();
-      controller.add(
-        LocationPoint(
-          latitude: position.latitude,
-          longitude: position.longitude,
-          timestamp: DateTime.now(),
-        ),
-      );
+      try {
+        final position = await Geolocator.getCurrentPosition();
+        if (!cancelled) {
+          controller.add(
+            LocationPoint(
+              latitude: position.latitude,
+              longitude: position.longitude,
+              timestamp: DateTime.now(),
+            ),
+          );
+        }
+      } catch (e) {
+        if (!cancelled) controller.addError(e);
+      }
+    }
+
+    // Schedules the next fetch only after the current one settles, so a
+    // slow GPS fix (e.g. on emulators or indoors) can never overlap with
+    // the following tick and produce duplicate readings.
+    Future<void> scheduleNext() async {
+      while (!cancelled) {
+        await Future.delayed(interval);
+        if (cancelled) return;
+        await tick();
+      }
     }
 
     controller = StreamController<LocationPoint>(
@@ -45,13 +62,13 @@ class LocationDataSourceImpl implements LocationDataSource {
         try {
           await _ensurePermission();
           await tick();
-          timer = Timer.periodic(interval, (_) => tick());
+          scheduleNext();
         } catch (e) {
           controller.addError(e);
         }
       },
       onCancel: () {
-        timer?.cancel();
+        cancelled = true;
       },
     );
 
