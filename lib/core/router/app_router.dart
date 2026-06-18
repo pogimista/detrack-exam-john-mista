@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import '../../features/splash/presentation/screens/splash_screen.dart';
+import '../../features/tracking/presentation/screens/tracking_screen.dart';
 import '../presentation/root_screen.dart';
 
 class AppRouter {
@@ -13,6 +14,10 @@ class AppRouter {
       GoRoute(
         path: '/',
         builder: (context, state) => const RootScreen(),
+      ),
+      GoRoute(
+        path: '/tracking',
+        builder: (context, state) => const TrackingScreen(),
       ),
     ],
   );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 class RootScreen extends StatelessWidget {
   const RootScreen({super.key});
@@ -7,7 +8,12 @@ class RootScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Home')),
-      body: const Center(child: Text('Welcome')),
+      body: Center(
+        child: ElevatedButton(
+          onPressed: () => context.push('/tracking'),
+          child: const Text('Go to Location Tracking'),
+        ),
+      ),
     );
   }
 }
