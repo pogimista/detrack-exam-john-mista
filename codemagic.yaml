@@ -1,0 +1,90 @@
+workflows:
+
+  # ── Android ──────────────────────────────────────────────────────────────
+  android-workflow:
+    name: Android Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+      android_signing:
+        - pokemon_keystore          # keystore uploaded in Codemagic dashboard
+      groups:
+        - google_maps               # group containing GOOGLE_MAPS_API_KEY
+
+    scripts:
+      - name: Get packages
+        script: flutter pub get
+
+      - name: Analyze
+        script: flutter analyze
+
+      - name: Test
+        script: flutter test
+
+      - name: Build release APK
+        script: flutter build apk --release
+
+    artifacts:
+      - build/app/outputs/flutter-apk/*.apk
+      - build/app/outputs/bundle/release/*.aab
+
+    publishing:
+      email:
+        recipients:
+          - pogimista@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # ── iOS ──────────────────────────────────────────────────────────────────
+  ios-workflow:
+    name: iOS Release
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.example.pokemon_flutter
+      groups:
+        - google_maps               # group containing GOOGLE_MAPS_API_KEY
+
+    scripts:
+      - name: Get packages
+        script: flutter pub get
+
+      - name: Inject Google Maps API key
+        script: |
+          sed -i '' \
+            "s/YOUR_GOOGLE_MAPS_API_KEY/$GOOGLE_MAPS_API_KEY/g" \
+            ios/Runner/AppDelegate.swift
+
+      - name: Set iOS deployment target
+        script: |
+          find . -name "Podfile" -maxdepth 2 -exec \
+            sed -i '' "s/# platform :ios, '12.0'/platform :ios, '14.0'/" {} \;
+
+      - name: Install CocoaPods
+        script: find . -name "Podfile" -execdir pod install \;
+
+      - name: Analyze
+        script: flutter analyze
+
+      - name: Build IPA
+        script: flutter build ipa --release
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+
+    publishing:
+      email:
+        recipients:
+          - pogimista@gmail.com
+        notify:
+          success: true
+          failure: true
