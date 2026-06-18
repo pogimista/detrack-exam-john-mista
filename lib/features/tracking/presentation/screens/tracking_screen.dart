@@ -80,9 +80,7 @@ class _TrackingViewState extends State<_TrackingView> {
       ),
       body: BlocBuilder<TrackingBloc, TrackingState>(
         builder: (context, state) {
-          final records = state is TrackingInProgress
-              ? state.records
-              : const <TrackingRecord>[];
+          final records = state.records;
           final visibleRecords = records.take(_limit).toList();
           return SafeArea(
             child: Column(

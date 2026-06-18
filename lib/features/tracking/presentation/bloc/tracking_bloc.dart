@@ -35,6 +35,30 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     on<LocationUpdated>(_onLocationUpdated);
     on<TrackingFailed>(_onTrackingFailed);
     on<ClearRecordsRequested>(_onClearRecordsRequested);
+    on<LoadStoredRecordsRequested>(_onLoadStoredRecordsRequested);
+
+    add(const LoadStoredRecordsRequested());
+  }
+
+  /// Rebuilds [state] as its same variant with [records] swapped in, so the
+  /// stored list stays visible regardless of whether tracking is active.
+  TrackingState _withRecords(TrackingState state, List<TrackingRecord> records) {
+    return switch (state) {
+      TrackingIdle() => TrackingIdle(records: records),
+      TrackingStarting() => TrackingStarting(records: records),
+      TrackingInProgress s => s.copyWith(records: records),
+      TrackingFailure s => TrackingFailure(s.message, records: records),
+    };
+  }
+
+  Future<void> _onLoadStoredRecordsRequested(
+    LoadStoredRecordsRequested event,
+    Emitter<TrackingState> emit,
+  ) async {
+    final result = await getTrackingRecords(const NoParams());
+    if (result is Success<List<TrackingRecord>>) {
+      emit(_withRecords(state, result.data.reversed.toList()));
+    }
   }
 
   Future<void> _onStartTrackingRequested(
@@ -47,12 +71,13 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     // invocations would create their own location stream, doubling reads.
     if (state is TrackingStarting || state is TrackingInProgress) return;
 
-    emit(const TrackingStarting());
+    final records = state.records;
+    emit(TrackingStarting(records: records));
 
     final result = await getTarget(const NoParams());
     switch (result) {
       case Success(data: final target):
-        emit(TrackingInProgress(target: target));
+        emit(TrackingInProgress(target: target, records: records));
         await _locationSubscription?.cancel();
         _locationSubscription = watchLocation(
           const WatchLocationParams(interval: Duration(seconds: 5)),
@@ -61,7 +86,7 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
           onError: (error) => add(TrackingFailed(error.toString())),
         );
       case Err(failure: final failure):
-        emit(TrackingFailure(failure.message));
+        emit(TrackingFailure(failure.message, records: records));
     }
   }
 
@@ -71,7 +96,7 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
   ) async {
     await _locationSubscription?.cancel();
     _locationSubscription = null;
-    emit(const TrackingIdle());
+    emit(TrackingIdle(records: state.records));
   }
 
   Future<void> _onLocationUpdated(
@@ -113,7 +138,7 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     TrackingFailed event,
     Emitter<TrackingState> emit,
   ) {
-    emit(TrackingFailure(event.message));
+    emit(TrackingFailure(event.message, records: state.records));
   }
 
   Future<void> _onClearRecordsRequested(
@@ -121,11 +146,7 @@ class TrackingBloc extends Bloc<TrackingEvent, TrackingState> {
     Emitter<TrackingState> emit,
   ) async {
     await clearTrackingRecords(const NoParams());
-
-    final current = state;
-    if (current is TrackingInProgress) {
-      emit(current.copyWith(records: const []));
-    }
+    emit(_withRecords(state, const []));
   }
 
   @override

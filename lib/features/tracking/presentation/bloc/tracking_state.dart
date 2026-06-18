@@ -5,31 +5,32 @@ import '../../domain/entities/target.dart';
 import '../../domain/entities/tracking_record.dart';
 
 sealed class TrackingState extends Equatable {
-  const TrackingState();
+  final List<TrackingRecord> records;
+
+  const TrackingState({this.records = const []});
 
   @override
-  List<Object?> get props => [];
+  List<Object?> get props => [records];
 }
 
 class TrackingIdle extends TrackingState {
-  const TrackingIdle();
+  const TrackingIdle({super.records});
 }
 
 class TrackingStarting extends TrackingState {
-  const TrackingStarting();
+  const TrackingStarting({super.records});
 }
 
 class TrackingInProgress extends TrackingState {
   final Target target;
   final LocationPoint? lastLocation;
   final Distance? distance;
-  final List<TrackingRecord> records;
 
   const TrackingInProgress({
     required this.target,
     this.lastLocation,
     this.distance,
-    this.records = const [],
+    super.records,
   });
 
   TrackingInProgress copyWith({
@@ -52,8 +53,8 @@ class TrackingInProgress extends TrackingState {
 class TrackingFailure extends TrackingState {
   final String message;
 
-  const TrackingFailure(this.message);
+  const TrackingFailure(this.message, {super.records});
 
   @override
-  List<Object?> get props => [message];
+  List<Object?> get props => [message, records];
 }

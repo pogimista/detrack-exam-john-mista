@@ -37,3 +37,7 @@ class TrackingFailed extends TrackingEvent {
 class ClearRecordsRequested extends TrackingEvent {
   const ClearRecordsRequested();
 }
+
+class LoadStoredRecordsRequested extends TrackingEvent {
+  const LoadStoredRecordsRequested();
+}
