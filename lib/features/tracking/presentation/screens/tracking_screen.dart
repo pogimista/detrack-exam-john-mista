@@ -428,6 +428,9 @@ class _EmptyReadingsView extends StatelessWidget {
   }
 }
 
+String _recordKey(TrackingRecord record) =>
+    '${record.timestamp.microsecondsSinceEpoch}';
+
 class _ReadingsList extends StatelessWidget {
   const _ReadingsList({required this.records});
 
@@ -438,63 +441,137 @@ class _ReadingsList extends StatelessWidget {
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       itemCount: records.length,
+      // Lets Flutter match items by key instead of position, so a record
+      // that shifts down the list keeps its element (no re-animation) while
+      // a genuinely new record gets a fresh element (and plays the entrance
+      // animation below).
+      findChildIndexCallback: (key) {
+        final valueKey = key as ValueKey<String>;
+        final index = records.indexWhere(
+          (r) => _recordKey(r) == valueKey.value,
+        );
+        return index == -1 ? null : index;
+      },
       itemBuilder: (context, index) {
         final record = records[index];
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 3),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-                child: const Icon(Icons.location_on, color: AppColors.primary, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'lat: ${record.latitude.toStringAsFixed(5)}, '
-                      'lng: ${record.longitude.toStringAsFixed(5)}',
-                      style: context.bodyMedium,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      record.timestamp.formattedDateTime,
-                      style: context.labelSmall,
-                    ),
-                  ],
+        return _NewReadingEntrance(
+          key: ValueKey(_recordKey(record)),
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
+              ],
+            ),
+            child: Row(
+              children: [
+                CircleAvatar(
+                  radius: 20,
+                  backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                  child: const Icon(
+                    Icons.location_on,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
                 ),
-                child: Text(
-                  record.distance.formatted,
-                  style: context.labelMedium.copyWith(color: AppColors.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'lat: ${record.latitude.toStringAsFixed(5)}, '
+                        'lng: ${record.longitude.toStringAsFixed(5)}',
+                        style: context.bodyMedium,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        record.timestamp.formattedDateTime,
+                        style: context.labelSmall,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    record.distance.formatted,
+                    style:
+                        context.labelMedium.copyWith(color: AppColors.primary),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },
+    );
+  }
+}
+
+/// Fades, slides, and briefly highlights a newly inserted reading so it
+/// stands out from the rest of the list. Plays once per element instance —
+/// existing readings that merely shift position reuse their element (via
+/// [ListView.builder]'s `findChildIndexCallback`) and never replay it.
+class _NewReadingEntrance extends StatefulWidget {
+  const _NewReadingEntrance({super.key, required this.child});
+
+  final Widget child;
+
+  @override
+  State<_NewReadingEntrance> createState() => _NewReadingEntranceState();
+}
+
+class _NewReadingEntranceState extends State<_NewReadingEntrance>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 450),
+  )..forward();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final curved = CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic);
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(0, -0.12),
+          end: Offset.zero,
+        ).animate(curved),
+        child: DecoratedBoxTransition(
+          decoration: DecorationTween(
+            begin: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            end: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0),
+              borderRadius: BorderRadius.circular(16),
+            ),
+          ).animate(curved),
+          child: widget.child,
+        ),
+      ),
     );
   }
 }
